@@ -339,7 +339,56 @@ A few things in the demo are actually production-correct and should survive the 
 
 ---
 
-## 8. Concrete Migration Order (If We Were Greenlit Tomorrow)
+## 8. Scheduled Execution and Regression Auditing
+
+The production system has no operator dashboard. Every workflow runs on a schedule, and a dedicated Playwright auditor runs alongside it to catch portal changes before they break a real cycle.
+
+### 8.1 Scheduler-Driven Workflows
+
+The demo's click-to-run model is an interview artifact. In production, workflows are triggered by events and schedules, not buttons:
+
+| Workflow | Trigger | Schedule |
+|---|---|---|
+| Monthly cycle (Choice) | Cron | 1st business day of month |
+| Monthly cycle (Passport) | Cron | 1st business day of month |
+| Onboard new hires | HRIS webhook (new employee event) | Event-driven, batched daily |
+| Offboard terminations | HRIS webhook (termination event) | Event-driven, batched daily |
+| Balance audit | Cron | Weekly sample (10 cards), monthly full |
+
+Temporal schedules (or GitHub Actions cron for a simpler stack) replace the dashboard's workflow buttons. Approval gates shift from an inline dashboard button to async notifications — Slack message or email with an approve link, plus a configurable timeout that auto-escalates to a manager if no response within N hours.
+
+The "dashboard" that remains is a read-only audit log: a web view of `automation_log` and `load_history` that employers and Fleet ops can query after the fact. It doesn't control anything.
+
+### 8.2 Playwright Regression Auditor
+
+Browser automation's core risk is silent portal changes. ORCA ships a UI update, a selector breaks, and the monthly cycle fails mid-run — or worse, submits to the wrong field. The regression auditor exists to catch this before it matters.
+
+**What it does:**
+
+A standalone Playwright test suite runs on a recurring schedule (daily or weekly) against the real `myorca.com` using a dedicated test employer account. It exercises every interaction path Fleet depends on:
+
+- Login flow and session handling
+- Manage Cards page structure: card rows, sidebar, balance element (`#epurse-balance`), search
+- Bulk Actions upload flow: file input, type selector, submit, Past Processes confirmation
+- Purchase Cards flow: quantity, access type, cart, order completion
+- CSV export download: card export link and file format
+- Participants page structure
+
+**What it checks:**
+
+Each test asserts that the expected selectors exist, that interactions produce the expected DOM state, and that bulk job processing completes. It does not assert on specific data — it asserts on page structure and interaction contracts.
+
+**What happens on failure:**
+
+A selector miss or interaction failure triggers an alert (PagerDuty / Slack). The alert includes which selector broke, a screenshot of the current page state, and a Playwright trace file. Fleet's on-call engineer updates the selector in `automation/config.js`, runs the auditor again to verify, and deploys before the next scheduled cycle.
+
+**Why this is the highest-leverage investment:**
+
+Every other production risk (DB corruption, workflow crash, network timeout) has standard mitigations. Portal markup changes are the one risk unique to browser automation, and they're guaranteed to happen — ORCA will update their UI. The auditor turns a "cycle failed at 3 AM and we found out at 9 AM" into a "selector drift detected Tuesday, fixed Wednesday, cycle runs Friday."
+
+---
+
+## 9. Concrete Migration Order (If We Were Greenlit Tomorrow)
 
 Phased, each phase shippable on its own:
 

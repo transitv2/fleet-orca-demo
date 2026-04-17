@@ -6,11 +6,15 @@ Browser automation for employer-managed ORCA card programs. Drives a mock `myorc
 
 **Prerequisites:** Node 20+ and a Mac (tested on macOS 14+). Install Node with `brew install node` if you don't have it.
 
+
 ```bash
 git clone https://github.com/transitv2/fleet-orca-demo.git
 cd fleet-orca-demo
-npm install     # downloads Chromium and seeds both databases
-npm start       # boots mock-orca on :3000 and fleet-backend on :3001
+npm install
+npm start
+```
+
+`npm install` downloads Chromium (~170MB) and seeds both databases, so the first install takes 1–2 minutes. `npm start` boots the mock ORCA portal on :3000 and the Fleet backend on :3001.
 ```
 
 Open **http://localhost:3001** and click **"Run Monthly Cycle (Acme)"**. A Chromium window opens and drives the mock portal for ~25 seconds while the dashboard streams every step.

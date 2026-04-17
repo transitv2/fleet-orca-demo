@@ -343,13 +343,12 @@ A few things in the demo are actually production-correct and should survive the 
 
 Phased, each phase shippable on its own:
 
-1. **TypeScript + Postgres + Drizzle** — keep Express, just add types and swap the DB. One sprint. Removes the inode-orphan class of bug entirely.
-2. **Temporal for one workflow (monthly-cycle)** — prove durable workflows on the highest-value path. Two sprints. Gives us replay-from-failure for the cycle that touches the most money.
-3. **Headless Playwright on a Browserbase worker pool** — one tenant at a time can run in production, others stay on local. Two sprints.
-4. **Auth + per-tenant isolation** — Clerk on the dashboard, encrypted credentials per employer, tenant-scoped queries everywhere. Three sprints.
+1. **TypeScript + Postgres + Drizzle** — keep Express, just add types and swap the DB. Removes the inode-orphan class of bug entirely.
+2. **Temporal for one workflow (monthly-cycle)** — prove durable workflows on the highest-value path. Gives us replay-from-failure for the cycle that touches the most money.
+3. **Headless Playwright on a Browserbase worker pool** — one tenant at a time can run in production, others stay on local.
+4. **Auth + per-tenant isolation** — Clerk on the dashboard, encrypted credentials per employer, tenant-scoped queries everywhere.
 5. **Eliminate the dashboard — run everything on a scheduler.** The operator dashboard is a demo artifact. In production, monthly cycles and onboard/offboard workflows run on cron (Temporal schedules or a simple GitHub Actions cron), triggered by HRIS change events, not button clicks. Approval gates become async notifications (Slack/email) with a timeout-based auto-escalation. The "dashboard" becomes a read-only audit log, not a control plane.
 6. **Playwright regression auditor on a schedule.** A dedicated Playwright test suite runs on a recurring schedule (daily or weekly) against the real `myorca.com` to verify that Fleet's selectors, bulk upload flows, and page structure haven't changed. If ORCA ships a UI update that breaks a selector, the auditor catches it before the next monthly cycle runs — not during it. This is the cheapest insurance against the core risk of browser automation: silent portal changes.
-7. **Merge.dev HRIS connector** — replace the CSV input with real HRIS pulls for one design partner. Three sprints.
-8. **Observability + alerting + on-call rotation** — the moment we have one real customer's cycle running in prod. One sprint.
-9. **Stripe + employer billing + customer onboarding flow** — when we have three paying customers and want a fourth without engineering involvement. Two sprints.
+7. **Merge.dev HRIS connector** — replace the CSV input with real HRIS pulls for one design partner.
+8. **Observability + alerting + on-call rotation** — the moment we have one real customer's cycle running in prod.
 

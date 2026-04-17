@@ -1,6 +1,6 @@
 # Fleet ORCA Automation Demo
 
-Browser automation for employer-managed ORCA card programs. Drives a mock `myorca.com` portal through the same workflows a real Fleet ops team runs each month — monthly e-purse cycles, balance audits, onboard/offboard lifecycle, autoload pause on termination. Two employer programs simulated across 300+ cards with 21+ edge cases.
+Browser automation for employer-managed ORCA card programs. Drives a mock `myorca.com` portal through the same workflows a real Fleet ops team runs each month — monthly e-purse cycles, balance audits, onboard/offboard lifecycle, autoload pause on termination. Two employer programs simulated across 300+ cards with 21+ edge cases. Left webview represents the ORCA Portal & Database, Right-side webview represents the Fleet backend. 
 
 ## Run it
 
@@ -17,12 +17,14 @@ Open **http://localhost:3001** and click **"Run Monthly Cycle (Acme)"**. A Chrom
 
 ## What to try
 
+- **Login to Orca Portal** - Use the following credentials to login to the mock orca portal within the dashboard'fleet@acme.com', password: 'demo123'
 - **Run Monthly Cycle (Acme)** — full 250-card monthly load cycle in one click
 - **Balance Audit > Quick (10 cards)** — on-demand verification mode, watch balances populate row-by-row
 - Switch employer to **MTA** and click **Run Monthly Passport** — Passport program variant
 - **Onboard New Card / Existing Card** — lifecycle workflows
 - **Offboard** — lock, balance transfer, bulk remove
 - **Reset** — restores both databases to seed state
+
 
 ## Architecture
 

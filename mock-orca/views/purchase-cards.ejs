@@ -1,0 +1,162 @@
+<h1 class="page-title">Purchase cards</h1>
+<p style="color:#666;margin-bottom:20px;">Cards are shipped to the address on file. Allow 5-7 business days for delivery.</p>
+
+<div class="card-product">
+  <div class="card-image">ORCA</div>
+  <div class="card-product-info">
+    <h3>Adult ORCA Card - BA</h3>
+    <p class="card-fee">Card fee: $3.00</p>
+  </div>
+</div>
+
+<form id="purchase-form">
+  <div class="form-group" style="max-width:200px;">
+    <label>Quantity</label>
+    <input type="number" id="purchase-qty" name="quantity" value="1" min="1" max="100">
+  </div>
+
+  <div class="form-group" style="max-width:300px;">
+    <label>Add to business profile as</label>
+    <select id="purchase-access" name="access_type">
+      <option value="Full Access">Full Access</option>
+      <option value="Load Only" selected>Load Only</option>
+      <option value="Do Not Add">Do Not Add</option>
+    </select>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:20px;">
+    <button type="button" class="btn btn-primary" onclick="openAddMoneyModal()">ADD MONEY / PASS</button>
+    <button type="button" class="btn" onclick="addToCartDirect()">ADD TO CART</button>
+  </div>
+</form>
+
+<div id="selected-products" style="margin-top:16px;display:none;">
+  <h4>Selected products:</h4>
+  <div id="product-list"></div>
+</div>
+
+<!-- Add Money/Pass Modal -->
+<div class="modal-overlay" id="add-money-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Money / Pass</h3>
+      <button class="modal-close" onclick="closeAddMoneyModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <h4 style="margin-bottom:12px;">Add Money</h4>
+      <div class="money-presets">
+        <button class="money-preset" type="button" onclick="selectPurchaseAmount(5, this)">$5</button>
+        <button class="money-preset" type="button" onclick="selectPurchaseAmount(10, this)">$10</button>
+        <button class="money-preset" type="button" onclick="selectPurchaseAmount(25, this)">$25</button>
+        <button class="money-preset" type="button" onclick="selectPurchaseAmount(50, this)">$50</button>
+      </div>
+      <div class="form-group">
+        <label>Custom amount ($5.00 - $400.00)</label>
+        <input type="number" id="purchase-money-amount" min="5" max="400" step="0.01">
+      </div>
+
+      <hr style="margin:16px 0;">
+
+      <h4 style="margin-bottom:12px;">Add Passes</h4>
+      <div class="form-group">
+        <label>Choose a regional or agency pass</label>
+        <div style="display:flex;gap:12px;">
+          <label><input type="radio" name="pass-type" value="regional" onchange="togglePassFields()"> Regional</label>
+          <label><input type="radio" name="pass-type" value="agency" onchange="togglePassFields()"> Agency</label>
+        </div>
+      </div>
+
+      <div id="regional-fields" style="display:none;">
+        <div class="form-group">
+          <label>Choose frequency</label>
+          <div style="display:flex;gap:12px;">
+            <label><input type="radio" name="pass-freq" value="monthly" onchange="toggleFreqFields()"> Monthly</label>
+            <label><input type="radio" name="pass-freq" value="passport" onchange="toggleFreqFields()"> Passport</label>
+          </div>
+        </div>
+        <div id="passport-field" style="display:none;">
+          <div class="form-group">
+            <label>Choose a pass</label>
+            <select id="passport-select">
+              <option value="Regional Business Passport">Regional Business Passport</option>
+            </select>
+          </div>
+        </div>
+        <div id="monthly-field" style="display:none;">
+          <div class="form-group">
+            <label>Choose the fare amount</label>
+            <select id="monthly-fare">
+              <option value="2.75">$2.75</option>
+              <option value="3.25">$3.25</option>
+              <option value="3.50">$3.50</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeAddMoneyModal()">CANCEL</button>
+      <button class="btn btn-primary" onclick="addToCardOrder()">ADD TO CARD ORDER</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let purchaseAmount = null;
+let purchasePass = null;
+
+function selectPurchaseAmount(amt, el) {
+  document.querySelectorAll('#add-money-modal .money-preset').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  purchaseAmount = amt;
+  document.getElementById('purchase-money-amount').value = '';
+}
+
+function togglePassFields() {
+  const type = document.querySelector('input[name="pass-type"]:checked');
+  document.getElementById('regional-fields').style.display = type && type.value === 'regional' ? 'block' : 'none';
+}
+
+function toggleFreqFields() {
+  const freq = document.querySelector('input[name="pass-freq"]:checked');
+  document.getElementById('passport-field').style.display = freq && freq.value === 'passport' ? 'block' : 'none';
+  document.getElementById('monthly-field').style.display = freq && freq.value === 'monthly' ? 'block' : 'none';
+}
+
+function openAddMoneyModal() { document.getElementById('add-money-modal').classList.add('open'); }
+function closeAddMoneyModal() { document.getElementById('add-money-modal').classList.remove('open'); }
+
+function addToCardOrder() {
+  const customAmt = parseFloat(document.getElementById('purchase-money-amount').value);
+  purchaseAmount = purchaseAmount || customAmt || null;
+
+  const passType = document.querySelector('input[name="pass-type"]:checked');
+  if (passType && passType.value === 'regional') {
+    const freq = document.querySelector('input[name="pass-freq"]:checked');
+    if (freq && freq.value === 'passport') {
+      purchasePass = document.getElementById('passport-select').value;
+    }
+  }
+
+  const products = [];
+  if (purchaseAmount) products.push('E-purse $' + purchaseAmount.toFixed(2));
+  if (purchasePass) products.push(purchasePass);
+
+  if (products.length) {
+    document.getElementById('selected-products').style.display = 'block';
+    document.getElementById('product-list').innerHTML = products.map(p => '<p style="margin:4px 0;">' + p + '</p>').join('');
+  }
+  closeAddMoneyModal();
+}
+
+async function addToCartDirect() {
+  const qty = parseInt(document.getElementById('purchase-qty').value) || 1;
+  const access = document.getElementById('purchase-access').value;
+  const res = await fetch('/cart/add-purchase', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ quantity: qty, access_type: access, money_amount: purchaseAmount, pass: purchasePass })
+  });
+  if (res.ok) window.location.href = '/cart';
+}
+</script>

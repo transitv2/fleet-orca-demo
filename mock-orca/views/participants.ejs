@@ -1,0 +1,202 @@
+<h1 class="page-title">Manage participants</h1>
+
+<div class="toolbar">
+  <button class="btn btn-primary" onclick="openAddSidebar()">ADD PARTICIPANT</button>
+  <div class="toolbar-right">
+    <div class="dropdown">
+      <button class="btn">EXPORT &#9662;</button>
+      <div class="dropdown-content">
+        <a href="/participants/export?format=csv">CSV</a>
+        <a href="#">PDF</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <select id="search-by">
+    <option value="first_name">First name</option>
+    <option value="last_name">Last name</option>
+    <option value="card_number">Card number</option>
+    <option value="group">Group</option>
+    <option value="identifier">Identifier</option>
+    <option value="email">Email</option>
+  </select>
+  <input type="text" id="search-input" placeholder="Search...">
+  <button class="btn" onclick="doSearch()">Search</button>
+  <% if (searchActive) { %><a href="/participants" class="btn btn-sm">Clear</a><% } %>
+</div>
+
+<form id="delete-form" method="POST" action="/participants/delete">
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Name</th>
+          <th>Card #</th>
+          <th>Group</th>
+          <th>Identifier</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% participants.forEach(function(p) { %>
+          <tr>
+            <td><a href="#" onclick="openEditSidebar(<%= p.id %>); return false;" style="color:#0066cc;">&#9998;</a></td>
+            <td><%= p.first_name %> <%= p.last_name %></td>
+            <td><%= p.card_number ? p.card_number.slice(-8) : '' %></td>
+            <td><%= p.group_name || '' %></td>
+            <td><%= p.identifier %></td>
+            <td><input type="checkbox" name="delete_ids" value="<%= p.id %>"></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <div style="margin-top:12px;">
+    <button type="submit" class="btn btn-danger btn-sm">DELETE SELECTED</button>
+  </div>
+</form>
+
+<% if (totalPages > 1) { %>
+  <div class="pagination">
+    <% for (let i = 1; i <= totalPages; i++) { %>
+      <% if (i === currentPage) { %>
+        <span class="current"><%= i %></span>
+      <% } else { %>
+        <a href="/participants?page=<%= i %>"><%= i %></a>
+      <% } %>
+    <% } %>
+  </div>
+<% } %>
+
+<!-- Add/Edit Participant Sidebar -->
+<div class="sidebar-overlay" id="participant-overlay" onclick="closeParticipantSidebar()"></div>
+<div class="sidebar" id="participant-sidebar">
+  <div class="sidebar-header">
+    <h3 id="participant-sidebar-title">Add Participant</h3>
+    <button class="sidebar-close" onclick="closeParticipantSidebar()">&times;</button>
+  </div>
+  <div class="sidebar-body">
+    <form id="participant-form">
+      <input type="hidden" id="p-id" name="id">
+      <div class="form-group">
+        <label>First Name</label>
+        <input type="text" id="p-first" name="first_name">
+      </div>
+      <div class="form-group">
+        <label>Last Name</label>
+        <input type="text" id="p-last" name="last_name">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="p-email" name="email">
+      </div>
+      <div class="form-group">
+        <label>Identifier *</label>
+        <input type="text" id="p-identifier" name="identifier" required>
+        <div class="form-error" id="p-id-error" style="display:none;">Please fix this field</div>
+      </div>
+      <div class="form-group">
+        <label>Card #</label>
+        <select id="p-card" name="card_id">
+          <option value="">-- Select card --</option>
+          <% unassignedCards.forEach(function(c) { %>
+            <option value="<%= c.id %>"><%= c.printed_card_number %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Group</label>
+        <select id="p-group" name="group_name">
+          <option value="">-- Select --</option>
+          <option value="HQ">HQ</option>
+          <option value="Bellevue">Bellevue</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Phone Number</label>
+        <input type="text" id="p-phone" name="phone">
+      </div>
+      <button type="button" class="btn btn-primary" onclick="saveParticipant()">Save</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function doSearch() {
+  const by = document.getElementById('search-by').value;
+  const val = document.getElementById('search-input').value;
+  window.location.href = '/participants?searchBy=' + by + '&searchVal=' + encodeURIComponent(val);
+}
+document.getElementById('search-input').addEventListener('keypress', function(e) { if (e.key === 'Enter') doSearch(); });
+
+function openAddSidebar() {
+  document.getElementById('participant-sidebar-title').textContent = 'Add Participant';
+  document.getElementById('participant-form').reset();
+  document.getElementById('p-id').value = '';
+  document.getElementById('p-id-error').style.display = 'none';
+  document.getElementById('participant-overlay').classList.add('open');
+  document.getElementById('participant-sidebar').classList.add('open');
+}
+
+async function openEditSidebar(id) {
+  const res = await fetch('/api/participant/' + id);
+  const p = await res.json();
+  document.getElementById('participant-sidebar-title').textContent = 'Edit Participant';
+  document.getElementById('p-id').value = p.id;
+  document.getElementById('p-first').value = p.first_name || '';
+  document.getElementById('p-last').value = p.last_name || '';
+  document.getElementById('p-email').value = p.email || '';
+  document.getElementById('p-identifier').value = p.identifier || '';
+  document.getElementById('p-phone').value = p.phone || '';
+  document.getElementById('p-group').value = p.group_name || '';
+  if (p.card_id) {
+    const opt = document.querySelector('#p-card option[value="' + p.card_id + '"]');
+    if (!opt) {
+      const newOpt = document.createElement('option');
+      newOpt.value = p.card_id;
+      newOpt.textContent = p.card_number || p.card_id;
+      newOpt.selected = true;
+      document.getElementById('p-card').appendChild(newOpt);
+    } else opt.selected = true;
+  }
+  document.getElementById('p-id-error').style.display = 'none';
+  document.getElementById('participant-overlay').classList.add('open');
+  document.getElementById('participant-sidebar').classList.add('open');
+}
+
+function closeParticipantSidebar() {
+  document.getElementById('participant-overlay').classList.remove('open');
+  document.getElementById('participant-sidebar').classList.remove('open');
+}
+
+async function saveParticipant() {
+  const id = document.getElementById('p-id').value;
+  const data = {
+    first_name: document.getElementById('p-first').value,
+    last_name: document.getElementById('p-last').value,
+    email: document.getElementById('p-email').value,
+    identifier: document.getElementById('p-identifier').value,
+    card_id: document.getElementById('p-card').value || null,
+    group_name: document.getElementById('p-group').value,
+    phone: document.getElementById('p-phone').value
+  };
+  const url = id ? '/api/participant/' + id : '/api/participant';
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (res.ok) {
+    closeParticipantSidebar();
+    location.reload();
+  } else {
+    const err = await res.json();
+    if (err.field === 'identifier') {
+      document.getElementById('p-id-error').style.display = 'block';
+    }
+  }
+}
+</script>

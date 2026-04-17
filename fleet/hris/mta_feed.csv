@@ -1,0 +1,22 @@
+employee_name,employee_id,email,location,status,product_type
+Lucia Fernandez,MTA-2001,lfernandez@mta.gov,Downtown,new_hire,Passport
+Kevin Park,MTA-2002,kpark@mta.gov,Eastside,new_hire,Passport
+Diana Osei,MTA-2003,dosei@mta.gov,Downtown,new_hire,Passport
+Sarah Mitchell,MTA-1015,smitchell@mta.gov,Downtown,terminated,Passport
+James O'Connor,MTA-1016,joconnor@mta.gov,Eastside,terminated,Passport
+Emma Larsen,MTA-1017,elarsen@mta.gov,Downtown,return_from_leave,Passport
+Marco DiStefano,MTA-1018,mdistefano@mta.gov,Downtown,worksite_transfer,Passport
+Angela Torres,MTA-1001,atorres@mta.gov,Downtown,active,Passport
+Robert Chang,MTA-1002,rchang@mta.gov,Downtown,active,Passport
+Michelle Okafor,MTA-1003,mokafor@mta.gov,Downtown,active,Passport
+Steven Nakamura,MTA-1004,snakamura@mta.gov,Eastside,active,Passport
+Patricia Johansson,MTA-1005,pjohansson@mta.gov,Eastside,active,Passport
+William Patel,MTA-1006,wpatel@mta.gov,Downtown,active,Passport
+Jennifer Schmidt,MTA-1007,jschmidt@mta.gov,Eastside,active,Passport
+David Kowalski,MTA-1008,dkowalski@mta.gov,Downtown,active,Passport
+Linda Hassan,MTA-1009,lhassan@mta.gov,Eastside,active,Passport
+Richard Svensson,MTA-1010,rsvensson@mta.gov,Downtown,active,Passport
+Karen Morales,MTA-1011,kmorales@mta.gov,Eastside,active,Passport
+Daniel Fitzgerald,MTA-1012,dfitzgerald@mta.gov,Downtown,active,Passport
+Carlos Rivera,MTA-1013,crivera@mta.gov,Downtown,active,Passport
+Yuki Tanaka,MTA-1014,ytanaka@mta.gov,Eastside,active,Passport

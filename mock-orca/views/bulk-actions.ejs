@@ -1,0 +1,142 @@
+<h1 class="page-title">Bulk Actions</h1>
+
+<div class="tabs" style="margin-bottom:20px;">
+  <button class="tab <%= actionType === 'add-cards' ? 'active' : '' %>" onclick="location.href='/bulk-actions?type=add-cards'">Add Cards to Account</button>
+  <button class="tab <%= actionType === 'add-participants' ? 'active' : '' %>" onclick="location.href='/bulk-actions?type=add-participants'">Add Participants</button>
+  <button class="tab <%= actionType === 'add-money' ? 'active' : '' %>" onclick="location.href='/bulk-actions?type=add-money'">Add Money / Passes</button>
+  <button class="tab <%= actionType === 'create-autoloads' ? 'active' : '' %>" onclick="location.href='/bulk-actions?type=create-autoloads'">Create Autoloads</button>
+  <button class="tab <%= actionType === 'create-passes' ? 'active' : '' %>" onclick="location.href='/bulk-actions?type=create-passes'">Create Passes</button>
+  <button class="tab <%= actionType === 'lock' ? 'active' : '' %>" onclick="location.href='/bulk-actions?type=lock'">Lock Cards</button>
+  <button class="tab <%= actionType === 'unlock' ? 'active' : '' %>" onclick="location.href='/bulk-actions?type=unlock'">Unlock Cards</button>
+  <button class="tab <%= actionType === 'remove-cards' ? 'active' : '' %>" onclick="location.href='/bulk-actions?type=remove-cards'">Remove Cards</button>
+</div>
+
+<% if (actionType === 'add-cards') { %>
+  <h3 style="margin-bottom:12px;">Add cards to business account</h3>
+  <p style="font-size:13px;color:#666;margin-bottom:16px;">
+    Upload a CSV with the following columns:<br>
+    <code>PrintedCardNumber*, AccessType</code><br>
+    Cards must already exist in the ORCA system. They will be linked to this business account.
+  </p>
+
+  <form method="POST" action="/bulk-actions/upload" enctype="multipart/form-data" id="upload-form">
+    <input type="hidden" name="action_type" value="Add Cards to Account">
+    <div class="upload-area" onclick="document.getElementById('csv-file').click()">
+      <input type="file" id="csv-file" name="file" accept=".csv" onchange="showFilename(this)">
+      <label class="upload-label">CHOOSE A FILE</label>
+      <div class="upload-filename" id="filename-display"></div>
+    </div>
+    <button type="submit" class="btn btn-primary" id="upload-btn" disabled>UPLOAD</button>
+  </form>
+
+<% } else if (actionType === 'add-participants') { %>
+  <h3 style="margin-bottom:12px;">Upload a participant file</h3>
+  <p style="font-size:13px;color:#666;margin-bottom:16px;">
+    Create a CSV with the following columns:<br>
+    <code>PrintedCardNumber*, Identifier*, FirstName, LastName, Email, GroupName</code><br>
+    Fields marked with * are required.
+  </p>
+
+  <form method="POST" action="/bulk-actions/upload" enctype="multipart/form-data" id="upload-form">
+    <input type="hidden" name="action_type" value="Add Participants">
+    <div class="upload-area" onclick="document.getElementById('csv-file').click()">
+      <input type="file" id="csv-file" name="file" accept=".csv" onchange="showFilename(this)">
+      <label class="upload-label">CHOOSE A FILE</label>
+      <div class="upload-filename" id="filename-display"></div>
+    </div>
+    <button type="submit" class="btn btn-primary" id="upload-btn" disabled>UPLOAD</button>
+  </form>
+
+<% } else if (actionType === 'add-money') { %>
+  <h3 style="margin-bottom:12px;">Step 1: Upload card list</h3>
+  <p style="font-size:13px;color:#666;margin-bottom:16px;">
+    Upload a CSV with a <code>PrintedCardNumber</code> column. One card number per row.
+  </p>
+
+  <form method="POST" action="/bulk-actions/upload" enctype="multipart/form-data" id="upload-form">
+    <input type="hidden" name="action_type" value="Add Money/Passes">
+    <div class="upload-area" onclick="document.getElementById('csv-file').click()">
+      <input type="file" id="csv-file" name="file" accept=".csv" onchange="showFilename(this)">
+      <label class="upload-label">CHOOSE A FILE</label>
+      <div class="upload-filename" id="filename-display"></div>
+    </div>
+    <button type="submit" class="btn btn-primary" id="upload-btn" disabled>UPLOAD</button>
+  </form>
+
+<% } else if (actionType === 'create-autoloads') { %>
+  <h3 style="margin-bottom:12px;">Upload card list for autoload creation</h3>
+  <p style="font-size:13px;color:#666;margin-bottom:16px;">
+    Upload a CSV with a <code>PrintedCardNumber</code> column. Autoload settings will be configured on the next screen.
+  </p>
+
+  <form method="POST" action="/bulk-actions/upload" enctype="multipart/form-data" id="upload-form">
+    <input type="hidden" name="action_type" value="Create Autoloads">
+    <div class="upload-area" onclick="document.getElementById('csv-file').click()">
+      <input type="file" id="csv-file" name="file" accept=".csv" onchange="showFilename(this)">
+      <label class="upload-label">CHOOSE A FILE</label>
+      <div class="upload-filename" id="filename-display"></div>
+    </div>
+    <button type="submit" class="btn btn-primary" id="upload-btn" disabled>UPLOAD</button>
+  </form>
+
+<% } else if (actionType === 'create-passes') { %>
+  <h3 style="margin-bottom:12px;">Upload card list to add Regional Business Passport</h3>
+  <p style="font-size:13px;color:#666;margin-bottom:16px;">
+    Upload a CSV with a <code>PrintedCardNumber</code> column. Adds Regional Business Passport product to each card.
+  </p>
+
+  <form method="POST" action="/bulk-actions/upload" enctype="multipart/form-data" id="upload-form">
+    <input type="hidden" name="action_type" value="Create Passes">
+    <div class="upload-area" onclick="document.getElementById('csv-file').click()">
+      <input type="file" id="csv-file" name="file" accept=".csv" onchange="showFilename(this)">
+      <label class="upload-label">CHOOSE A FILE</label>
+      <div class="upload-filename" id="filename-display"></div>
+    </div>
+    <button type="submit" class="btn btn-primary" id="upload-btn" disabled>UPLOAD</button>
+  </form>
+
+<% } else if (actionType === 'remove-cards') { %>
+  <h3 style="margin-bottom:12px;">Upload card list to remove from account</h3>
+  <p style="font-size:13px;color:#666;margin-bottom:16px;">
+    Upload a CSV with a <code>PrintedCardNumber</code> column. Removes each card from the business account. Passes are stripped; e-purse balance stays with the card.
+  </p>
+
+  <form method="POST" action="/bulk-actions/upload" enctype="multipart/form-data" id="upload-form">
+    <input type="hidden" name="action_type" value="Remove Cards">
+    <div class="upload-area" onclick="document.getElementById('csv-file').click()">
+      <input type="file" id="csv-file" name="file" accept=".csv" onchange="showFilename(this)">
+      <label class="upload-label">CHOOSE A FILE</label>
+      <div class="upload-filename" id="filename-display"></div>
+    </div>
+    <button type="submit" class="btn btn-primary" id="upload-btn" disabled>UPLOAD</button>
+  </form>
+
+<% } else if (actionType === 'lock' || actionType === 'unlock') { %>
+  <h3 style="margin-bottom:12px;">Upload card list to <%= actionType %></h3>
+  <p style="font-size:13px;color:#666;margin-bottom:16px;">
+    Upload a CSV with a <code>PrintedCardNumber</code> column.
+  </p>
+
+  <form method="POST" action="/bulk-actions/upload" enctype="multipart/form-data" id="upload-form">
+    <input type="hidden" name="action_type" value="<%= actionType === 'lock' ? 'Lock Cards' : 'Unlock Cards' %>">
+    <div class="upload-area" onclick="document.getElementById('csv-file').click()">
+      <input type="file" id="csv-file" name="file" accept=".csv" onchange="showFilename(this)">
+      <label class="upload-label">CHOOSE A FILE</label>
+      <div class="upload-filename" id="filename-display"></div>
+    </div>
+    <button type="submit" class="btn btn-primary" id="upload-btn" disabled>UPLOAD</button>
+  </form>
+<% } %>
+
+<div style="margin-top:24px;">
+  <a href="/bulk-actions/history" class="btn">View Past Processes</a>
+</div>
+
+<script>
+function showFilename(input) {
+  if (input.files.length) {
+    document.getElementById('filename-display').textContent = input.files[0].name;
+    document.getElementById('upload-btn').disabled = false;
+  }
+}
+</script>

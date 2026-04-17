@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>myORCA Business - <%= typeof pageTitle !== 'undefined' ? pageTitle : 'Portal' %></title>
+  <link rel="stylesheet" href="/orca.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-logo"><span>ORCA</span> Business</div>
+    <div class="header-account">
+      <%= typeof employerName !== 'undefined' ? employerName : 'Acme Corp' %> &nbsp;|&nbsp; <%= typeof username !== 'undefined' ? username : 'fleet@acme.com' %>
+      <a href="/logout">Sign Out</a>
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="nav-dropdown <%= typeof navActive !== 'undefined' && (navActive === 'manage-cards' || navActive === 'purchase-cards') ? 'active' : '' %>">
+      Cards &#9662;
+      <div class="nav-dropdown-content">
+        <a href="/manage-cards" class="nav-cards">Manage Cards</a>
+        <a href="/purchase-cards" class="nav-purchase">Purchase Cards</a>
+      </div>
+    </div>
+    <a href="/participants" class="nav-participants <%= typeof navActive !== 'undefined' && navActive === 'participants' ? 'active' : '' %>">Participants</a>
+    <a href="/bulk-actions" class="nav-bulk <%= typeof navActive !== 'undefined' && navActive === 'bulk' ? 'active' : '' %>">Bulk Actions</a>
+    <div class="nav-dropdown <%= typeof navActive !== 'undefined' && (navActive === 'orders' || navActive === 'admin') ? 'active' : '' %>">
+      Administration &#9662;
+      <div class="nav-dropdown-content">
+        <a href="/order-history" class="nav-orders">Order History</a>
+        <a href="#">Invoice History</a>
+        <a href="#">Account Settings</a>
+        <a href="#">Manage Admins</a>
+        <a href="#">My Profile</a>
+      </div>
+    </div>
+  </nav>
+  <div class="main">
+    <%- body %>
+  </div>
+  <% if (typeof scripts !== 'undefined') { %>
+    <%- scripts %>
+  <% } %>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Fleet ORCA Automation Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; background: #0d1117; color: #c9d1d9; font-size: 13px; height: 100vh; overflow: hidden; }
+
+    /* Top bar */
+    .topbar { background: #161b22; border-bottom: 1px solid #30363d; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; }
+    .topbar h1 { font-size: 16px; color: #58a6ff; font-weight: 600; }
+    .topbar h1 span { color: #F5A623; }
+    .controls { display: flex; gap: 8px; }
+    .ctrl-btn { padding: 6px 14px; border: 1px solid #30363d; border-radius: 6px; background: #21262d; color: #c9d1d9; cursor: pointer; font-size: 12px; font-weight: 500; }
+    .ctrl-btn:hover { border-color: #58a6ff; color: #58a6ff; }
+    .ctrl-btn.primary { background: #238636; border-color: #238636; color: white; }
+    .ctrl-btn.primary:hover { background: #2ea043; }
+    .ctrl-btn.danger { background: #da3633; border-color: #da3633; color: white; }
+    .ctrl-btn.danger:hover { background: #f85149; }
+    .ctrl-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .dropdown-wrap { position: relative; display: inline-block; }
+    .dropdown-menu { display: none; position: absolute; top: 100%; left: 0; background: #21262d; border: 1px solid #30363d; border-radius: 6px; z-index: 100; min-width: 160px; padding-top: 4px; margin-top: 0; }
+    .dropdown-wrap:hover .dropdown-menu, .dropdown-wrap:focus-within .dropdown-menu { display: block; }
+    .dropdown-menu a { display: block; padding: 8px 14px; color: #c9d1d9; text-decoration: none; font-size: 12px; }
+    .dropdown-menu a:hover { background: #30363d; }
+
+    /* Main layout */
+    .main-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 240px; height: calc(100vh - 45px); }
+
+    /* Panels */
+    .panel { border: 1px solid #30363d; overflow: hidden; display: flex; flex-direction: column; }
+    .panel-tabs { display: flex; background: #161b22; border-bottom: 1px solid #30363d; flex-shrink: 0; }
+    .panel-tab { padding: 8px 16px; font-size: 12px; cursor: pointer; border: none; background: none; color: #8b949e; font-weight: 500; border-bottom: 2px solid transparent; }
+    .panel-tab:hover { color: #c9d1d9; }
+    .panel-tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+    .panel-body { flex: 1; overflow: auto; padding: 0; }
+    .panel-body iframe { width: 100%; height: 100%; border: none; }
+
+    /* Log panel spans full width */
+    .log-panel { grid-column: 1 / -1; }
+
+    /* Data tables */
+    .db-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .db-table th { background: #161b22; padding: 6px 8px; text-align: left; color: #8b949e; font-weight: 600; position: sticky; top: 0; border-bottom: 1px solid #30363d; white-space: nowrap; }
+    .db-table td { padding: 5px 8px; border-bottom: 1px solid #21262d; white-space: nowrap; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+    .db-table tr:hover { background: #161b22; }
+    .db-table td.changed { animation: flash 1.5s ease; }
+    @keyframes flash { 0% { background: #3d2e00; } 100% { background: transparent; } }
+
+    /* Roster table */
+    .roster-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .roster-table th { background: #161b22; padding: 8px 10px; text-align: left; color: #8b949e; font-weight: 600; position: sticky; top: 0; }
+    .roster-table td { padding: 7px 10px; border-bottom: 1px solid #21262d; }
+    .roster-table tr:hover { background: #161b22; }
+    .roster-table .updated { animation: flash 1.5s ease; }
+    .badge-sm { display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 10px; font-weight: 600; }
+    .badge-active { background: #1b4332; color: #40c057; }
+    .badge-inactive { background: #3d1f1f; color: #f85149; }
+    .badge-leave { background: #3d2e00; color: #d29922; }
+    .null-val { color: #484f58; font-style: italic; }
+
+    /* Summary card */
+    .summary-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin: 12px; }
+    .summary-card h3 { color: #58a6ff; margin-bottom: 10px; font-size: 14px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .summary-item label { display: block; font-size: 10px; color: #8b949e; text-transform: uppercase; }
+    .summary-item span { font-size: 18px; font-weight: 700; color: #c9d1d9; }
+    .summary-item span.green { color: #3fb950; }
+    .summary-item span.red { color: #f85149; }
+
+    /* CSV viewer */
+    .csv-list { padding: 12px; }
+    .csv-file { background: #161b22; border: 1px solid #30363d; border-radius: 6px; margin-bottom: 8px; }
+    .csv-header { padding: 10px 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .csv-header:hover { background: #21262d; }
+    .csv-filename { font-weight: 600; color: #58a6ff; }
+    .csv-meta { color: #8b949e; font-size: 11px; }
+    .csv-preview { display: none; padding: 10px 12px; border-top: 1px solid #30363d; background: #0d1117; font-family: monospace; font-size: 11px; white-space: pre; overflow-x: auto; }
+    .csv-preview.open { display: block; }
+
+    /* Automation log */
+    .log-entries { padding: 8px 12px; font-family: monospace; font-size: 12px; }
+    .log-entry { padding: 4px 0; display: flex; gap: 8px; align-items: flex-start; }
+    .log-entry + .log-entry { border-top: 1px solid #21262d; }
+    .log-tag { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; min-width: 64px; text-align: center; flex-shrink: 0; }
+    .log-tag.script { background: #0d4429; color: #3fb950; }
+    .log-tag.browser { background: #1b1f6f; color: #a371f7; }
+    .log-tag.approval { background: #3d2e00; color: #d29922; }
+    .log-time { color: #484f58; font-size: 11px; flex-shrink: 0; }
+    .log-text { color: #c9d1d9; }
+    .log-text strong { color: #e6edf3; }
+
+    /* Approval banner */
+    .approval-banner { background: #3d2e00; border: 1px solid #d29922; border-radius: 6px; padding: 12px 16px; margin: 8px 12px; display: flex; align-items: center; justify-content: space-between; }
+    .approval-banner p { color: #d29922; font-weight: 500; }
+    .approval-banner .ctrl-btn { background: #238636; border-color: #238636; }
+
+    /* Complete banner */
+    .complete-banner { background: #0d4429; border: 1px solid #238636; border-radius: 6px; padding: 10px 16px; margin: 8px 12px; color: #3fb950; font-weight: 600; }
+
+    /* Sub-tabs for DB views */
+    .sub-tabs { display: flex; gap: 4px; padding: 4px 8px; background: #0d1117; border-bottom: 1px solid #21262d; }
+    .sub-tab { padding: 4px 10px; font-size: 11px; cursor: pointer; border: 1px solid transparent; border-radius: 4px; background: none; color: #8b949e; }
+    .sub-tab:hover { color: #c9d1d9; }
+    .sub-tab.active { background: #21262d; color: #58a6ff; border-color: #30363d; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h1><span>Fleet</span> ORCA Automation Demo</h1>
+    <div class="controls">
+      <select id="employer-select" onchange="switchEmployer()" style="padding:6px 10px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#c9d1d9;font-size:12px;margin-right:8px;">
+        <option value="acme">Acme Corp (Choice)</option>
+        <option value="mta">Metro Transit Authority (Passport)</option>
+      </select>
+      <div class="dropdown-wrap">
+        <button class="ctrl-btn primary" id="btn-onboard">Onboard &#9662;</button>
+        <div class="dropdown-menu" id="onboard-menu">
+          <a href="#" onclick="runWorkflow('onboard-new'); return false;">New Card (Choice)</a>
+          <a href="#" onclick="runWorkflow('onboard-existing'); return false;">Existing Card (Choice)</a>
+          <a href="#" onclick="runWorkflow('passport-onboard-new'); return false;">New Card (Passport)</a>
+        </div>
+      </div>
+      <div class="dropdown-wrap">
+        <button class="ctrl-btn primary" id="btn-monthly">Monthly &#9662;</button>
+        <div class="dropdown-menu">
+          <a href="#" onclick="runWorkflow('monthly'); return false;">Monthly — Choice (Acme)</a>
+          <a href="#" onclick="runWorkflow('passport-monthly'); return false;">Monthly — Passport (MTA)</a>
+        </div>
+      </div>
+      <div class="dropdown-wrap">
+        <button class="ctrl-btn" id="btn-offboard">Offboard &#9662;</button>
+        <div class="dropdown-menu">
+          <a href="#" onclick="runWorkflow('offboard'); return false;">Offboard — Choice (Acme)</a>
+          <a href="#" onclick="runWorkflow('passport-offboard'); return false;">Offboard — Passport (MTA)</a>
+        </div>
+      </div>
+      <div class="dropdown-wrap">
+        <button class="ctrl-btn" id="btn-audit">Balance Audit &#9662;</button>
+        <div class="dropdown-menu">
+          <a href="#" onclick="runWorkflow('audit-10'); return false;">Quick (10 cards)</a>
+          <a href="#" onclick="runWorkflow('audit-20'); return false;">Sample (20 cards)</a>
+          <a href="#" onclick="runWorkflow('audit-50'); return false;">Extended (50 cards)</a>
+          <a href="#" onclick="runWorkflow('audit-all'); return false;">Full Audit (all cards)</a>
+        </div>
+      </div>
+      <button class="ctrl-btn danger" onclick="resetDemo()">Reset</button>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <!-- Left Panel: myORCA -->
+    <div class="panel">
+      <div class="panel-tabs">
+        <button class="panel-tab active" onclick="switchLeftTab('portal', this)">Portal</button>
+        <button class="panel-tab" onclick="switchLeftTab('orca-db', this)">Database</button>
+      </div>
+      <div class="panel-body" id="left-body">
+        <div id="left-portal" style="height:100%;"><iframe src="http://localhost:3000" id="orca-iframe"></iframe></div>
+        <div id="left-orca-db" style="display:none;height:100%;overflow:auto;">
+          <div class="sub-tabs">
+            <button class="sub-tab active" onclick="loadOrcaTable('cards', this)">cards</button>
+            <button class="sub-tab" onclick="loadOrcaTable('participants', this)">participants</button>
+            <button class="sub-tab" onclick="loadOrcaTable('autoloads', this)">autoloads</button>
+            <button class="sub-tab" onclick="loadOrcaTable('bulk-jobs', this)">bulk_jobs</button>
+          </div>
+          <div id="orca-table-container" style="overflow:auto;height:calc(100% - 32px);"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Fleet -->
+    <div class="panel">
+      <div class="panel-tabs">
+        <button class="panel-tab active" onclick="switchRightTab('roster', this)">Roster</button>
+        <button class="panel-tab" onclick="switchRightTab('fleet-db', this)">Database</button>
+        <button class="panel-tab" onclick="switchRightTab('csvs', this)">CSVs</button>
+      </div>
+      <div class="panel-body" id="right-body">
+        <div id="right-roster" style="height:100%;overflow:auto;">
+          <div id="roster-container"></div>
+          <div id="summary-container"></div>
+        </div>
+        <div id="right-fleet-db" style="display:none;height:100%;overflow:auto;">
+          <div class="sub-tabs">
+            <button class="sub-tab active" onclick="loadFleetTable('roster', this)">roster</button>
+            <button class="sub-tab" onclick="loadFleetTable('load-history', this)">load_history</button>
+            <button class="sub-tab" onclick="loadFleetTable('automation-log', this)">automation_log</button>
+          </div>
+          <div id="fleet-table-container" style="overflow:auto;height:calc(100% - 32px);"></div>
+        </div>
+        <div id="right-csvs" style="display:none;height:100%;overflow:auto;">
+          <div class="csv-list" id="csv-container">
+            <p style="color:#8b949e;padding:20px;">No files generated yet. Run a workflow to see output files.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Panel: Automation Log -->
+    <div class="panel log-panel">
+      <div class="panel-tabs">
+        <button class="panel-tab active">Automation Log</button>
+        <span style="margin-left:auto;padding:8px 16px;font-size:11px;color:#8b949e;" id="workflow-status"></span>
+      </div>
+      <div class="panel-body" id="log-body" style="overflow-y:auto;">
+        <div class="log-entries" id="log-entries">
+          <p style="color:#484f58;padding:8px;">Waiting for workflow... Click a button above to start.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<h1 class="page-title">Review Data</h1>
+
+<p style="margin-bottom:16px;">Job type: <strong><%= job.job_type %></strong> &mdash; File: <%= job.file_name %> &mdash; <%= rows.length %> row(s)</p>
+
+<% if (job.job_type === 'Create Autoloads') { %>
+  <div style="margin-bottom:20px;">
+    <h3 style="margin-bottom:12px;">Configure Autoload Settings</h3>
+    <p style="font-size:13px;color:#666;margin-bottom:12px;">These settings apply to all <%= rows.length %> cards in the file.</p>
+    <div class="form-group" style="max-width:250px;">
+      <label>Type</label>
+      <select id="autoload-type-bulk" onchange="toggleAutoloadBulk()">
+        <option value="time" selected>Time-based</option>
+        <option value="threshold">Threshold-based</option>
+      </select>
+    </div>
+    <div id="time-fields-bulk">
+      <div class="form-group" style="max-width:250px;">
+        <label>Trigger day (day of month)</label>
+        <select id="autoload-day-bulk">
+          <% for(let d=1;d<=28;d++){ %><option value="<%= d %>" <%= d===1?'selected':'' %>><%= d %></option><% } %>
+        </select>
+      </div>
+    </div>
+    <div id="threshold-fields-bulk" style="display:none;">
+      <div class="form-group" style="max-width:250px;">
+        <label>When balance falls below ($)</label>
+        <input type="number" id="autoload-threshold-bulk" value="10" min="1" max="399">
+      </div>
+    </div>
+    <div class="form-group" style="max-width:250px;">
+      <label>Load amount ($)</label>
+      <input type="number" id="autoload-amount-bulk" value="50" min="1" max="400">
+    </div>
+    <div class="form-group" style="max-width:250px;">
+      <label>Payment source</label>
+      <select id="autoload-payment-bulk">
+        <option>Primary Credit Card</option>
+      </select>
+    </div>
+  </div>
+<% } else if (job.job_type === 'Add Money/Passes') { %>
+  <div style="margin-bottom:20px;">
+    <h3 style="margin-bottom:12px;">Select money and/or passes</h3>
+    <div class="money-presets">
+      <button class="money-preset" onclick="selectBulkAmount(5, this)">$5</button>
+      <button class="money-preset" onclick="selectBulkAmount(10, this)">$10</button>
+      <button class="money-preset" onclick="selectBulkAmount(25, this)">$25</button>
+      <button class="money-preset selected" onclick="selectBulkAmount(50, this)">$50</button>
+    </div>
+    <div class="form-group" style="max-width:200px;">
+      <label>Custom amount</label>
+      <input type="number" id="bulk-amount" value="50" min="1" max="400" step="0.01">
+    </div>
+  </div>
+<% } %>
+
+<div class="table-container">
+  <table>
+    <thead>
+      <tr>
+        <th>Status</th>
+        <% if (rows.length > 0) { %>
+          <% Object.keys(rows[0]).forEach(function(key) { if (key !== '_valid' && key !== '_error') { %>
+            <th><%= key %></th>
+          <% }}); %>
+        <% } %>
+        <th>Validation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% rows.forEach(function(row) { %>
+        <tr>
+          <td><span class="review-status <%= row._valid ? 'review-valid' : 'review-invalid' %>"><%= row._valid ? '✓' : '✗' %></span></td>
+          <% Object.keys(row).forEach(function(key) { if (key !== '_valid' && key !== '_error') { %>
+            <td><%= row[key] %></td>
+          <% }}); %>
+          <td style="color:<%= row._valid ? '#28a745' : '#dc3545' %>;font-size:12px;"><%= row._error || 'Valid' %></td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</div>
+
+<div style="margin-top:20px;display:flex;gap:12px;">
+  <% if (job.job_type === 'Create Autoloads') { %>
+    <form method="POST" action="/bulk-actions/submit/<%= job.id %>" id="autoload-form">
+      <input type="hidden" name="autoload_type" id="submit-autoload-type" value="time">
+      <input type="hidden" name="autoload_day" id="submit-autoload-day" value="1">
+      <input type="hidden" name="autoload_threshold" id="submit-autoload-threshold" value="">
+      <input type="hidden" name="autoload_amount" id="submit-autoload-amount" value="50">
+      <input type="hidden" name="autoload_payment" id="submit-autoload-payment" value="Primary Credit Card">
+      <button type="submit" class="btn btn-primary" onclick="syncAutoloadFields()">SUBMIT</button>
+    </form>
+  <% } else if (job.job_type === 'Add Money/Passes') { %>
+    <form method="POST" action="/bulk-actions/submit/<%= job.id %>">
+      <input type="hidden" name="amount" id="submit-amount" value="50">
+      <button type="submit" class="btn btn-primary">CHECKOUT</button>
+    </form>
+  <% } else { %>
+    <form method="POST" action="/bulk-actions/submit/<%= job.id %>">
+      <button type="submit" class="btn btn-primary">SUBMIT</button>
+    </form>
+  <% } %>
+  <a href="/bulk-actions" class="btn">Cancel</a>
+</div>
+
+<script>
+function selectBulkAmount(amt, el) {
+  document.querySelectorAll('.money-preset').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('bulk-amount').value = amt;
+  document.getElementById('submit-amount').value = amt;
+}
+document.getElementById('bulk-amount')?.addEventListener('change', function() {
+  document.querySelectorAll('.money-preset').forEach(p => p.classList.remove('selected'));
+  document.getElementById('submit-amount').value = this.value;
+});
+
+function toggleAutoloadBulk() {
+  const type = document.getElementById('autoload-type-bulk')?.value;
+  const timeFields = document.getElementById('time-fields-bulk');
+  const threshFields = document.getElementById('threshold-fields-bulk');
+  if (timeFields) timeFields.style.display = type === 'time' ? 'block' : 'none';
+  if (threshFields) threshFields.style.display = type === 'threshold' ? 'block' : 'none';
+}
+
+function syncAutoloadFields() {
+  const type = document.getElementById('autoload-type-bulk')?.value || 'time';
+  document.getElementById('submit-autoload-type').value = type;
+  document.getElementById('submit-autoload-day').value = document.getElementById('autoload-day-bulk')?.value || '1';
+  document.getElementById('submit-autoload-threshold').value = document.getElementById('autoload-threshold-bulk')?.value || '';
+  document.getElementById('submit-autoload-amount').value = document.getElementById('autoload-amount-bulk')?.value || '50';
+  document.getElementById('submit-autoload-payment').value = document.getElementById('autoload-payment-bulk')?.value || 'Primary Credit Card';
+}
+</script>

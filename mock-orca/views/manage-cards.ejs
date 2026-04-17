@@ -1,0 +1,462 @@
+<h1 class="page-title">Manage cards</h1>
+
+<div class="toolbar">
+  <button id="manage-btn" class="btn btn-primary" disabled onclick="openManageSidebar()">MANAGE</button>
+  <div class="toolbar-right">
+    <div class="dropdown">
+      <button class="btn">EXPORT &#9662;</button>
+      <div class="dropdown-content">
+        <a href="/manage-cards/export?format=csv">CSV</a>
+        <a href="#">PDF</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <label style="font-size:13px;font-weight:600;">Search by:</label>
+  <select class="search-by-dropdown" id="search-by">
+    <option value="card_number">Card number</option>
+    <option value="last_name">Participant last name</option>
+    <option value="group">Group</option>
+    <option value="status">Card status</option>
+    <option value="fare_category">Fare category</option>
+    <option value="card_type">Card type</option>
+  </select>
+  <input type="text" class="search-input" id="search-input" placeholder="Search...">
+  <button class="btn search-btn" onclick="doSearch()">Search</button>
+  <% if (searchActive) { %>
+    <a href="/manage-cards" class="btn btn-sm">Clear</a>
+  <% } %>
+</div>
+
+<div class="table-container">
+  <table>
+    <thead>
+      <tr>
+        <th><input type="checkbox" id="select-all" onchange="toggleAll(this)"></th>
+        <th>Card #</th>
+        <th>Identifier</th>
+        <th>Name</th>
+        <th>Group</th>
+        <th>Status</th>
+        <th>Access</th>
+        <th>Fare Category</th>
+        <th>Card Type</th>
+        <th>Replaced Card #</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% cards.forEach(function(card) { %>
+        <tr class="card-row" data-csn="<%= card.printed_card_number %>" data-id="<%= card.id %>">
+          <td><input type="checkbox" class="card-checkbox" value="<%= card.id %>" onchange="onCheckChange()"></td>
+          <td><%= card.printed_card_number.slice(-8) %></td>
+          <td><%= card.identifier || '' %></td>
+          <td><%= card.first_name ? card.first_name + ' ' + card.last_name : '' %></td>
+          <td><%= card.group_name || '' %></td>
+          <td><span class="badge badge-<%= card.status.toLowerCase() %>"><%= card.status %></span></td>
+          <td><%= card.access_type %></td>
+          <td><%= card.fare_category %></td>
+          <td><%= card.card_type %></td>
+          <td><%= card.replaced_card_number ? card.replaced_card_number.slice(-8) : '' %></td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</div>
+
+<% if (totalPages > 1) { %>
+  <div class="pagination">
+    <% for (let i = 1; i <= totalPages; i++) { %>
+      <% if (i === currentPage) { %>
+        <span class="current"><%= i %></span>
+      <% } else { %>
+        <a href="/manage-cards?page=<%= i %>&searchBy=<%= searchBy || '' %>&searchVal=<%= searchVal || '' %>"><%= i %></a>
+      <% } %>
+    <% } %>
+  </div>
+<% } %>
+
+<!-- Card Management Sidebar -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="sidebar" id="card-sidebar">
+  <div class="sidebar-header">
+    <h3 id="sidebar-csn"></h3>
+    <button class="sidebar-close" onclick="closeSidebar()">&times;</button>
+  </div>
+  <div class="sidebar-body">
+    <p style="margin-bottom:12px;"><strong id="sidebar-name"></strong> &mdash; <span id="sidebar-access"></span></p>
+
+    <div class="sidebar-actions">
+      <a href="#" onclick="removeCard(); return false;">Remove</a>
+      <a href="#" id="lock-toggle-btn" onclick="openLockModal(); return false;">Lock</a>
+      <a href="#" onclick="return false;">Unlink Participant</a>
+      <a href="#" onclick="return false;">Close Card</a>
+      <a href="#" onclick="return false;">Replace Card</a>
+      <a href="#" onclick="openTransferModal(); return false;">Transfer Balance</a>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('epurse', this)">E-PURSE</button>
+      <button class="tab" onclick="switchTab('passes', this)">PASSES</button>
+    </div>
+
+    <div id="tab-epurse" class="tab-content active">
+      <div class="balance-label">Total balance</div>
+      <div class="balance-display" id="epurse-balance">$0.00</div>
+      <div class="pretax-display">Pre-tax funds: <span id="pretax-balance">$0.00</span></div>
+
+      <h4 style="margin-bottom:8px;">Add Money</h4>
+      <div class="money-presets">
+        <button class="money-preset" onclick="selectAmount(5, this)">$5</button>
+        <button class="money-preset" onclick="selectAmount(10, this)">$10</button>
+        <button class="money-preset" onclick="selectAmount(25, this)">$25</button>
+        <button class="money-preset" onclick="selectAmount(50, this)">$50</button>
+      </div>
+      <div class="form-group">
+        <label>Custom amount</label>
+        <input type="number" id="custom-amount" min="1" max="400" step="0.01" placeholder="$0.00" onchange="clearPresets()">
+      </div>
+      <button class="btn btn-primary" id="add-money-btn" onclick="addToCart()">Add to Cart</button>
+
+      <div class="autoload-section">
+        <h4 style="margin-bottom:8px;">Autoloads</h4>
+        <div id="autoload-list"></div>
+        <button class="btn btn-sm" id="autoload-toggle-btn" onclick="openAutoloadForm()" style="margin-top:8px;">Turn on autoload</button>
+        <div id="autoload-form" style="display:none;margin-top:12px;">
+          <div class="form-group">
+            <label>Type</label>
+            <select id="autoload-type" onchange="toggleAutoloadFields()">
+              <option value="time">Time-based</option>
+              <option value="threshold">Threshold-based</option>
+            </select>
+          </div>
+          <div id="time-fields">
+            <div class="form-group">
+              <label>Day of month</label>
+              <select id="autoload-day">
+                <% for(let d=1;d<=28;d++){ %><option value="<%= d %>"><%= d %></option><% } %>
+              </select>
+            </div>
+          </div>
+          <div id="threshold-fields" style="display:none;">
+            <div class="form-group">
+              <label>When balance falls below</label>
+              <input type="number" id="autoload-threshold" value="10" min="1" max="399">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Load amount</label>
+            <input type="number" id="autoload-amount" value="50" min="1" max="400">
+          </div>
+          <div class="form-group">
+            <label>Payment source</label>
+            <select id="autoload-payment">
+              <option>Primary Credit Card</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="saveAutoload()">Save</button>
+          <button class="btn btn-sm" onclick="document.getElementById('autoload-form').style.display='none'">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-passes" class="tab-content">
+      <div id="passes-list"></div>
+      <button class="btn btn-sm" id="add-pass-btn" style="margin-top:12px;" onclick="addPassportPass()">Add Regional Business Passport</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lock Modal -->
+<div class="modal-overlay" id="lock-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Lock Card</h3>
+      <button class="modal-close" onclick="closeLockModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom:12px;">Select lock reason:</p>
+      <div class="form-group">
+        <label><input type="radio" name="lock-reason" value="Lost" id="lock-reason-lost"> Lost</label>
+      </div>
+      <div class="form-group">
+        <label><input type="radio" name="lock-reason" value="Business Exclusive" id="lock-reason-business" checked> Business Exclusive</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeLockModal()">Cancel</button>
+      <button class="btn btn-danger" id="lock-confirm" onclick="lockCard()">Lock Card</button>
+    </div>
+  </div>
+</div>
+
+<!-- Transfer Modal -->
+<div class="modal-overlay" id="transfer-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Transfer Balance</h3>
+      <button class="modal-close" onclick="closeTransferModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Transfer to card:</label>
+        <select id="transfer-target"></select>
+      </div>
+      <div class="form-group">
+        <label>Amount</label>
+        <input type="number" id="transfer-amount" min="0.01" step="0.01">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeTransferModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="transferBalance()">Transfer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let selectedCardId = null;
+let selectedCardCSN = null;
+let selectedAmount = null;
+
+function toggleAll(el) {
+  document.querySelectorAll('.card-checkbox').forEach(cb => cb.checked = el.checked);
+  onCheckChange();
+}
+
+function onCheckChange() {
+  const checked = document.querySelectorAll('.card-checkbox:checked');
+  document.getElementById('manage-btn').disabled = checked.length !== 1;
+  if (checked.length === 1) {
+    const row = checked[0].closest('tr');
+    selectedCardId = checked[0].value;
+    selectedCardCSN = row.dataset.csn;
+    document.querySelectorAll('.card-row').forEach(r => r.classList.remove('selected'));
+    row.classList.add('selected');
+  }
+}
+
+function doSearch() {
+  const by = document.getElementById('search-by').value;
+  const val = document.getElementById('search-input').value;
+  window.location.href = '/manage-cards?searchBy=' + by + '&searchVal=' + encodeURIComponent(val);
+}
+
+document.getElementById('search-input').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') doSearch();
+});
+
+async function openManageSidebar() {
+  if (!selectedCardId) return;
+  const res = await fetch('/api/card/' + selectedCardId);
+  const card = await res.json();
+
+  document.getElementById('sidebar-csn').textContent = card.printed_card_number;
+  document.getElementById('sidebar-name').textContent = card.first_name ? card.first_name + ' ' + card.last_name : 'Unassigned';
+  document.getElementById('sidebar-access').textContent = card.access_type;
+
+  const bal = parseFloat(card.epurse_balance);
+  const balEl = document.getElementById('epurse-balance');
+  balEl.textContent = '$' + bal.toFixed(2);
+  balEl.className = 'balance-display' + (bal >= 400 ? ' at-cap' : '');
+  document.getElementById('pretax-balance').textContent = '$' + parseFloat(card.pretax_balance).toFixed(2);
+
+  // Lock/Unlock button
+  const lockBtn = document.getElementById('lock-toggle-btn');
+  if (card.status === 'Locked') {
+    lockBtn.textContent = 'Unlock';
+    lockBtn.onclick = function() { unlockCard(); return false; };
+  } else {
+    lockBtn.textContent = 'Lock';
+    lockBtn.onclick = function() { openLockModal(); return false; };
+  }
+
+  // Autoloads
+  const autoRes = await fetch('/api/card/' + selectedCardId + '/autoloads');
+  const autoloads = await autoRes.json();
+  const autoList = document.getElementById('autoload-list');
+  autoList.innerHTML = '';
+  autoloads.forEach(al => {
+    const div = document.createElement('div');
+    div.className = 'autoload-item';
+    div.innerHTML = '<span class="autoload-status ' + al.status.toLowerCase() + '">' + al.status + '</span> — ' +
+      (al.type === 'time' ? 'Day ' + al.trigger_day + ' of month' : 'Below $' + al.trigger_balance) +
+      ' — $' + parseFloat(al.load_amount).toFixed(2) +
+      ' <a href="#" class="autoload-remove-link" onclick="removeAutoload(' + al.id + '); return false;" style="color:#dc3545;font-size:12px;">Remove</a>' +
+      (al.status === 'Active' ? ' <a href="#" class="autoload-pause-link" onclick="pauseAutoload(' + al.id + '); return false;" style="color:#d29922;font-size:12px;margin-left:8px;">Pause</a>' : '') +
+      (al.status === 'Paused' ? ' <a href="#" class="autoload-resume-link" onclick="resumeAutoload(' + al.id + '); return false;" style="color:#28a745;font-size:12px;margin-left:8px;">Resume</a>' : '');
+    autoList.appendChild(div);
+  });
+
+  // Passes
+  const passesRes = await fetch('/api/card/' + selectedCardId + '/passes');
+  const passes = await passesRes.json();
+  const passesList = document.getElementById('passes-list');
+  passesList.innerHTML = '';
+  if (passes.length === 0) {
+    passesList.innerHTML = '<p style="color:#dc3545;font-weight:600;">No active passes — CRITICAL if Passport account</p>';
+  } else {
+    passes.forEach(pass => {
+      const div = document.createElement('div');
+      div.className = 'autoload-item';
+      div.innerHTML = '<strong>' + pass.product + '</strong> — <span class="autoload-status active">' + pass.status + '</span>' +
+        ' <a href="#" onclick="removePass(' + pass.id + '); return false;" style="color:#dc3545;font-size:12px;margin-left:8px;">Remove</a>';
+      passesList.appendChild(div);
+    });
+  }
+
+  // Transfer target list
+  const cardsRes = await fetch('/api/cards-for-transfer?exclude=' + selectedCardId);
+  const transferCards = await cardsRes.json();
+  const sel = document.getElementById('transfer-target');
+  sel.innerHTML = '';
+  transferCards.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.printed_card_number.slice(-8) + (c.first_name ? ' — ' + c.first_name + ' ' + c.last_name : ' — Unassigned');
+    sel.appendChild(opt);
+  });
+  document.getElementById('transfer-amount').value = bal.toFixed(2);
+
+  document.getElementById('sidebar-overlay').classList.add('open');
+  document.getElementById('card-sidebar').classList.add('open');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar-overlay').classList.remove('open');
+  document.getElementById('card-sidebar').classList.remove('open');
+}
+
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+function selectAmount(amt, el) {
+  document.querySelectorAll('.money-preset').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedAmount = amt;
+  document.getElementById('custom-amount').value = '';
+}
+
+function clearPresets() {
+  document.querySelectorAll('.money-preset').forEach(p => p.classList.remove('selected'));
+  selectedAmount = parseFloat(document.getElementById('custom-amount').value) || null;
+}
+
+async function addToCart() {
+  const amt = selectedAmount || parseFloat(document.getElementById('custom-amount').value);
+  if (!amt || amt <= 0) return alert('Select an amount');
+  const res = await fetch('/cart/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ card_id: selectedCardId, amount: amt, type: 'add_money' })
+  });
+  if (res.ok) {
+    alert('Added $' + amt.toFixed(2) + ' to cart');
+    closeSidebar();
+  }
+}
+
+function openLockModal() { document.getElementById('lock-modal').classList.add('open'); }
+function closeLockModal() { document.getElementById('lock-modal').classList.remove('open'); }
+
+async function lockCard() {
+  const reason = document.querySelector('input[name="lock-reason"]:checked').value;
+  await fetch('/api/card/' + selectedCardId + '/lock', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason })
+  });
+  closeLockModal();
+  closeSidebar();
+  location.reload();
+}
+
+async function unlockCard() {
+  await fetch('/api/card/' + selectedCardId + '/unlock', { method: 'POST' });
+  closeSidebar();
+  location.reload();
+}
+
+async function removeCard() {
+  if (!confirm('Remove this card from the business account?')) return;
+  await fetch('/api/card/' + selectedCardId + '/remove', { method: 'POST' });
+  closeSidebar();
+  location.reload();
+}
+
+function openTransferModal() { document.getElementById('transfer-modal').classList.add('open'); }
+function closeTransferModal() { document.getElementById('transfer-modal').classList.remove('open'); }
+
+async function transferBalance() {
+  const targetId = document.getElementById('transfer-target').value;
+  const amount = parseFloat(document.getElementById('transfer-amount').value);
+  await fetch('/api/card/' + selectedCardId + '/transfer', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target_id: targetId, amount })
+  });
+  closeTransferModal();
+  closeSidebar();
+  location.reload();
+}
+
+function toggleAutoloadFields() {
+  const type = document.getElementById('autoload-type').value;
+  document.getElementById('time-fields').style.display = type === 'time' ? 'block' : 'none';
+  document.getElementById('threshold-fields').style.display = type === 'threshold' ? 'block' : 'none';
+}
+
+function openAutoloadForm() { document.getElementById('autoload-form').style.display = 'block'; }
+
+async function saveAutoload() {
+  const type = document.getElementById('autoload-type').value;
+  const body = {
+    type,
+    trigger_day: type === 'time' ? parseInt(document.getElementById('autoload-day').value) : null,
+    trigger_balance: type === 'threshold' ? parseFloat(document.getElementById('autoload-threshold').value) : null,
+    load_amount: parseFloat(document.getElementById('autoload-amount').value),
+    payment_source: document.getElementById('autoload-payment').value
+  };
+  await fetch('/api/card/' + selectedCardId + '/autoload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  document.getElementById('autoload-form').style.display = 'none';
+  openManageSidebar(); // refresh
+}
+
+async function removeAutoload(id) {
+  await fetch('/api/autoload/' + id + '/remove', { method: 'POST' });
+  openManageSidebar();
+}
+
+async function resumeAutoload(id) {
+  await fetch('/api/autoload/' + id + '/resume', { method: 'POST' });
+  openManageSidebar();
+}
+
+async function pauseAutoload(id) {
+  await fetch('/api/autoload/' + id + '/pause', { method: 'POST' });
+  openManageSidebar();
+}
+
+async function addPassportPass() {
+  await fetch('/api/card/' + selectedCardId + '/pass', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ product: 'Regional Business Passport' })
+  });
+  openManageSidebar();
+}
+
+async function removePass(id) {
+  await fetch('/api/pass/' + id + '/remove', { method: 'POST' });
+  openManageSidebar();
+}
+</script>

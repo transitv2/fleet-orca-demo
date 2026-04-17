@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>myORCA Business - Sign In</title>
+  <link rel="stylesheet" href="/orca.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-logo"><span>ORCA</span> Business</div>
+  </div>
+  <div class="login-container">
+    <div class="login-header">
+      <div class="header-logo"><span>ORCA</span></div>
+      <p style="margin-top:8px;color:#666;">Business Account Sign In</p>
+    </div>
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div style="background:#f8d7da;color:#721c24;padding:8px 12px;border-radius:4px;margin-bottom:16px;font-size:13px;"><%= error %></div>
+    <% } %>
+    <form method="POST" action="/login">
+      <div class="form-group">
+        <label for="username">Email</label>
+        <input type="text" id="username" name="username" required autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="off">
+      </div>
+      <button type="submit" id="login-btn" class="btn btn-primary" style="width:100%;justify-content:center;">Sign In</button>
+    </form>
+  </div>
+</body>
+</html>

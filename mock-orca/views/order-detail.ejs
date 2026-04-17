@@ -1,0 +1,47 @@
+<h1 class="page-title">Order details</h1>
+
+<div class="toolbar">
+  <a href="/order-history" class="btn">&larr; Back to Orders</a>
+  <div class="toolbar-right">
+    <div class="dropdown">
+      <button class="btn">EXPORT &#9662;</button>
+      <div class="dropdown-content">
+        <a href="/order-history/<%= order.id %>/export?format=csv">CSV</a>
+        <a href="#">PDF</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="order-meta" style="margin-top:16px;">
+  <div class="order-meta-grid">
+    <div class="order-meta-item"><label>Order Number</label><span><%= order.order_number %></span></div>
+    <div class="order-meta-item"><label>Order Date</label><span><%= new Date(order.order_date).toLocaleDateString() %></span></div>
+    <div class="order-meta-item"><label>Status</label><span class="badge badge-<%= order.status.toLowerCase() %>"><%= order.status %></span></div>
+    <div class="order-meta-item"><label>Payment Method</label><span><%= order.payment_method %></span></div>
+    <div class="order-meta-item"><label>Quantity</label><span><%= order.quantity %></span></div>
+    <div class="order-meta-item"><label>Total</label><span>$<%= parseFloat(order.total_amount).toFixed(2) %></span></div>
+  </div>
+</div>
+
+<h3 style="margin:20px 0 12px;">Order items</h3>
+<div class="table-container">
+  <table>
+    <thead>
+      <tr>
+        <th>Card Number</th>
+        <th>Product</th>
+        <th>Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% items.forEach(function(item) { %>
+        <tr>
+          <td><%= item.printed_card_number %></td>
+          <td><%= item.product %></td>
+          <td>$<%= parseFloat(item.amount).toFixed(2) %></td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</div>

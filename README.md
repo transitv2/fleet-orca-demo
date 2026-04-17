@@ -24,14 +24,6 @@ Open **http://localhost:3001** and click **"Run Monthly Cycle (Acme)"**. A Chrom
 - **Offboard** — lock, balance transfer, bulk remove
 - **Reset** — restores both databases to seed state
 
-## Key demo moments
-
-1. **Monthly cycle is fast.** 250 cards processed in ~25 seconds. Bulk CSVs submitted. Autoloads paused for terminations. Log shows the money-saved counter.
-2. **"But Fleet never scraped anything."** The Roster tab shows `current_balance` is still NULL for most cards. Fast cycle, unverified actuals — by design.
-3. **Run Balance Audit > Quick (10 cards).** Balances populate row-by-row as Playwright navigates each sidebar. At-cap cards flash red.
-4. **Switch to MTA.** Monthly Passport fixes 2 cards missing Passport products via bulk upload. Negative balances get covered.
-5. **Click Reset.** Both databases return to seed state. Ready to demo again.
-
 ## Architecture
 
 ```

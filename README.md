@@ -7,7 +7,7 @@ Browser automation for employer-managed ORCA card programs. Drives a mock `myorc
 **Prerequisites:** Node 20+ and a Mac (tested on macOS 14+). Install Node with `brew install node` if you don't have it.
 
 ```bash
-git clone <REPO_URL>
+git clone https://github.com/transitv2/fleet-orca-demo.git
 cd fleet-orca-demo
 npm install     # downloads Chromium and seeds both databases
 npm start       # boots mock-orca on :3000 and fleet-backend on :3001

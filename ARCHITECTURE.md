@@ -164,27 +164,9 @@ The real value is not the happy path — it is the 21 cases the portal does not 
 | Missing email | 1 | Flag for employer |
 | New hires | 10 | Queue for onboard workflow |
 
-The **autoload pause / resume** logic is the single highest-ROI piece of Fleet's product: ORCA will keep auto-loading a terminated employee's card until someone tells it to stop. Pausing on the same cycle the HRIS termination fires saves the employer real money every month.
-
 ---
 
-## 5. Demo Talking Points (the Story to Tell)
-
-These are the moments to land in a 15-minute demo.
-
-1. **"Watch the monthly cycle complete in 25 seconds."** Click *Monthly — Choice (Acme)*. Talk through the SCRIPT / BROWSER / APPROVAL log tags as they stream in. Highlight the autoload-paused counter — *that's money the employer was losing every month*.
-2. **"But Fleet never scraped a single balance."** Switch to the Roster tab. Point at the `Balance` column — mostly NULL. *That is the tradeoff: fast cycle, unverified actuals. Now watch what the audit does.*
-3. **"Run Balance Audit → Quick (10 cards)."** Watch balances populate row-by-row as Playwright drives the portal. At-cap cards flash red. *That is the verification layer. We run it on demand.*
-4. **"Switch employer to MTA."** Click *Monthly — Passport*. Watch Fleet detect 2 cards with missing Passport products and bulk-fix them. *Same operational shape, different program.*
-5. **"Click Reset."** Both databases return to seed state. Ready to demo again. *No external state, no cleanup, deterministic.*
-
-The throughline of the pitch: **Fleet is the operational layer ORCA didn't build.** The cycle is fast because it trusts. The audit is slow because it verifies. Together they prove Fleet understands exactly what ORCA gives you and exactly what it costs you.
-
-The single most useful sentence in the demo: *"With API access, this whole audit would take 2 seconds. Without it, this is the best architecture for the constraint."*
-
----
-
-## 6. Why This Stack Today (Demo Choices)
+## 5. Why This Stack Today (Demo Choices)
 
 Every choice in the current stack was made for **demo velocity** and **interview legibility**, not production. Calling them out explicitly:
 
@@ -205,11 +187,11 @@ None of those are wrong choices for an interview demo. **They are deliberate tra
 
 ---
 
-## 7. Production Gaps (What's Missing)
+## 6. Production Gaps (What's Missing)
 
 Grouped by severity. These are the things that would have to be true before a real customer's monthly cycle ran on this code.
 
-### 7.1 Correctness & Safety
+### 6.1 Correctness & Safety
 
 - **No idempotency keys.** If a workflow crashes after submitting a bulk job but before recording `load_history`, a retry would double-load. Production needs deterministic workflow IDs and write-ahead intent records.
 - **No optimistic concurrency on roster updates.** Two workflows touching the same employee race silently. Need versioned writes.
@@ -219,7 +201,7 @@ Grouped by severity. These are the things that would have to be true before a re
 - **Bulk CSV uploads are not validated against the file before submitting.** ORCA's bulk validator catches errors after upload — Fleet should pre-validate.
 - **No replay protection.** Re-running the monthly cycle on the same day re-submits everything.
 
-### 7.2 Observability
+### 6.2 Observability
 
 - **`automation_log` is the only audit trail.** No structured tracing, no per-workflow spans, no error aggregation. A failed run requires reading SQLite by hand.
 - **No metrics.** Cycle duration, autoload-pause hit rate, audit cap-out percentage — none are emitted as time series.
@@ -227,7 +209,7 @@ Grouped by severity. These are the things that would have to be true before a re
 - **Browser screenshots and traces are not captured.** Playwright supports `tracing.start()` / video recording — we capture neither, so post-mortem on a portal change is blind.
 - **No health checks.** Servers will run wedged forever if mock-orca's DB locks up.
 
-### 7.3 Multi-Tenancy & Scale
+### 6.3 Multi-Tenancy & Scale
 
 - **One ORCA account per process.** The current scripts assume a single login at a time. Real Fleet has hundreds of employer accounts and would need per-tenant credential vaulting plus a worker pool.
 - **No queue.** Workflows are launched on click, no scheduling, no concurrency limits, no priority.
@@ -235,7 +217,7 @@ Grouped by severity. These are the things that would have to be true before a re
 - **Credentials are in `automation/config.js` as plain strings.** Needs a secrets manager (AWS Secrets Manager / HashiCorp Vault) and per-tenant key wrapping.
 - **No rate limiting against ORCA.** Production must respect ORCA's actual rate limits and back off on portal errors.
 
-### 7.4 Resilience
+### 6.4 Resilience
 
 - **No checkpointing.** A 12-minute audit that crashes at minute 11 starts over from card 1.
 - **No retry on transient portal errors.** A timeout in Playwright kills the workflow.
@@ -243,7 +225,7 @@ Grouped by severity. These are the things that would have to be true before a re
 - **No circuit breaker on ORCA degradation.** If `myorca.com` is slow, every active workflow piles up.
 - **No DR for SQLite.** A corrupt `fleet.db` is unrecoverable without a backup, and we don't take backups.
 
-### 7.5 Security
+### 6.5 Security
 
 - **No authentication on the Fleet dashboard or API.** The whole `/api/*` surface is open to anyone who can reach port 3001.
 - **CORS is wildcarded** (`Access-Control-Allow-Origin: *`).
@@ -254,7 +236,7 @@ Grouped by severity. These are the things that would have to be true before a re
 - **Stored XSS surface in the dashboard** — log entries render `step_name` and `detail` via `innerHTML` without sanitization. (See `fleet/dashboard/app.js:79`.)
 - **Mock portal session secret is hardcoded** (`'orca-demo-secret-key'`).
 
-### 7.6 Operational
+### 6.6 Operational
 
 - **No deploy story.** It's `node start.js` on a laptop.
 - **No CI/CD.**
@@ -263,7 +245,7 @@ Grouped by severity. These are the things that would have to be true before a re
 - **No customer onboarding flow.** Adding a new employer means hand-editing seed data.
 - **No billing, no usage metering.**
 
-### 7.7 Product Surface Missing for a Real Operator
+### 6.7 Product Surface Missing for a Real Operator
 
 - No employer portal (employers see Fleet's results how, today?).
 - No employee notifications ("your card was loaded $50").
@@ -273,11 +255,11 @@ Grouped by severity. These are the things that would have to be true before a re
 
 ---
 
-## 8. The Production Tech Stack — What We Would Shift
+## 7. The Production Tech Stack — What We Would Shift
 
 Mapping each demo choice to the production replacement, with the reasoning.
 
-### 8.1 Storage
+### 7.1 Storage
 
 | Today | Production | Why |
 |---|---|---|
@@ -286,7 +268,7 @@ Mapping each demo choice to the production replacement, with the reasoning.
 | Synchronous DB writes | **Outbox pattern** (write event row in same txn, async publish) | Reliable event delivery to downstream systems without 2PC |
 | No cache | **Redis** (Upstash or ElastiCache) for hot roster lookups, rate-limit counters, idempotency keys | The orchestrator hits roster constantly; reads should be sub-ms |
 
-### 8.2 Workflow Execution
+### 7.2 Workflow Execution
 
 | Today | Production | Why |
 |---|---|---|
@@ -297,7 +279,7 @@ Mapping each demo choice to the production replacement, with the reasoning.
 
 The Temporal substitution is the highest-impact change. It replaces "synchronous Node script with try/catch" with "durable function whose state survives crashes and can be replayed for debugging" — which is *the* requirement when each workflow is touching real money and real cards.
 
-### 8.3 API / Backend
+### 7.3 API / Backend
 
 | Today | Production | Why |
 |---|---|---|
@@ -306,7 +288,7 @@ The Temporal substitution is the highest-impact change. It replaces "synchronous
 | Auth: none | **Clerk** or **Auth0** for operator login + RBAC; **Stytch** if employer-facing | Don't roll session management twice |
 | Per-request DB connection caching | **Prisma** or **Drizzle** ORM with connection pooling (PgBouncer) | Connection lifecycle handled correctly without inode bugs (cf. our recent debugging) |
 
-### 8.4 Frontend (Dashboard)
+### 7.4 Frontend (Dashboard)
 
 | Today | Production | Why |
 |---|---|---|
@@ -315,7 +297,7 @@ The Temporal substitution is the highest-impact change. It replaces "synchronous
 | SSE via raw `EventSource` | **WebSocket via Pusher/Ably** or **Server-Sent Events with auth + per-tenant channels** | SSE is fine, but production needs auth on the stream and per-employer filtering |
 | `innerHTML` log rendering (XSS!) | **React + DOMPurify** (or just JSX, which auto-escapes) | The dashboard XSS today is one untrusted log entry away from compromise |
 
-### 8.5 Observability
+### 7.5 Observability
 
 | Today | Production | Why |
 |---|---|---|
@@ -325,7 +307,7 @@ The Temporal substitution is the highest-impact change. It replaces "synchronous
 | No browser session capture | **Playwright tracing.start() + video** uploaded to S3 per workflow run | Post-mortem on portal markup changes is a screen recording, not a guess |
 | No alerts | **PagerDuty integration on cycle-failure rate** | Real customers, real pages |
 
-### 8.6 Infrastructure
+### 7.6 Infrastructure
 
 | Today | Production | Why |
 |---|---|---|
@@ -335,7 +317,7 @@ The Temporal substitution is the highest-impact change. It replaces "synchronous
 | No environments | **Preview deploys per PR** (Vercel does this for free), staging, prod | Standard |
 | No secrets | **Doppler or AWS Secrets Manager**; per-tenant ORCA credentials encrypted with envelope encryption (KMS) | Required for SOC2 |
 
-### 8.7 Integrations
+### 7.7 Integrations
 
 | Today | Production | Why |
 |---|---|---|
@@ -344,7 +326,7 @@ The Temporal substitution is the highest-impact change. It replaces "synchronous
 | No billing | **Stripe** subscriptions per employer, metered usage for audits | Standard SaaS billing |
 | No support | **Linear** for engineering, **Intercom** or **Plain** for customer support, with workflow event hooks | Customer reports a "card not loaded" issue → ticket auto-attaches the relevant `automation_log` rows |
 
-### 8.8 The "Don't Change This" List
+### 7.8 The "Don't Change This" List
 
 A few things in the demo are actually production-correct and should survive the rewrite:
 
@@ -357,7 +339,7 @@ A few things in the demo are actually production-correct and should survive the 
 
 ---
 
-## 9. Concrete Migration Order (If We Were Greenlit Tomorrow)
+## 8. Concrete Migration Order (If We Were Greenlit Tomorrow)
 
 Phased, each phase shippable on its own:
 
@@ -370,10 +352,3 @@ Phased, each phase shippable on its own:
 7. **Observability + alerting + on-call rotation** — the moment we have one real customer's cycle running in prod. One sprint.
 8. **Stripe + employer billing + customer onboarding flow** — when we have three paying customers and want a fourth without engineering involvement. Two sprints.
 
-Total: roughly four months of focused engineering to turn the demo into a small-N production product. The interesting work is steps 2 and 3 — everything else is standard SaaS plumbing.
-
----
-
-## 10. The One-Sentence Summary
-
-*The current system proves the operational model; the production system replaces every piece of plumbing while preserving the design — durable workflows in place of forked Node scripts, headless worker pools in place of a single visible browser, Postgres in place of two SQLite files, OIDC and per-tenant secrets in place of plaintext credentials, and OpenTelemetry in place of a SQLite log table — with the cycle/audit split, the bulk-first principle, and the autoload pause/resume logic carried forward unchanged because that is the actual product.*
